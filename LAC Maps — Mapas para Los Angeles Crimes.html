@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAC Maps — Mapas para Los Angeles Crimes</title>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --bg2: #141720;
+    --bg3: #1c2030;
+    --card: #181c27;
+    --card2: #202435;
+    --accent: #4f8ef7;
+    --accent2: #6fa4ff;
+    --accent-glow: rgba(79,142,247,0.18);
+    --gold: #f5c542;
+    --text: #e8eaf0;
+    --text2: #8b91a8;
+    --text3: #555d76;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(79,142,247,0.25);
+    --radius: 12px;
+    --danger: #e85555;
+    --success: #3dca7e;
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* NAV */
+  nav {
+    background: rgba(13,15,20,0.95);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .nav-logo { display: flex; align-items: center; gap: 10px; }
+  .nav-logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -1px;
+  }
+  .nav-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .nav-logo-text span { color: var(--accent2); }
+  .nav-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; transition: all .15s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--bg3); color: var(--text); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(232,85,85,0.3); }
+  .btn-danger:hover { background: rgba(232,85,85,0.1); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { filter: brightness(1.1); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* VIEWS */
+  .view { display: none; min-height: calc(100vh - 56px); }
+  .view.active { display: block; }
+
+  /* HOME */
+  .home-hero {
+    background: linear-gradient(180deg, #0d1629 0%, var(--bg) 100%);
+    padding: 48px 20px 32px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-glow); border: 1px solid var(--border2);
+    border-radius: 20px; padding: 4px 14px; font-size: 12px;
+    color: var(--accent2); margin-bottom: 18px; font-weight: 500;
+  }
+  .hero-badge::before { content: '●'; font-size: 8px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .hero-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; margin-bottom: 10px; }
+  .hero-title span { color: var(--accent2); }
+  .hero-sub { font-size: 14px; color: var(--text2); max-width: 320px; margin: 0 auto 24px; line-height: 1.6; }
+  .hero-stats { display: flex; justify-content: center; gap: 28px; margin-top: 24px; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 22px; font-weight: 800; color: var(--accent2); }
+  .stat-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .section-header {
+    padding: 24px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .section-title { font-size: 15px; font-weight: 700; }
+  .section-count { font-size: 12px; color: var(--text3); background: var(--bg3); padding: 3px 10px; border-radius: 20px; }
+
+  /* SEARCH */
+  .search-bar {
+    padding: 0 20px 16px;
+  }
+  .search-input-wrap {
+    position: relative;
+  }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; color: var(--text3); pointer-events: none;
+  }
+  .search-input {
+    width: 100%; padding: 10px 12px 10px 36px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 14px; font-family: var(--font);
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+
+  /* MAP GRID */
+  .maps-grid { padding: 0 20px 32px; display: flex; flex-direction: column; gap: 14px; }
+
+  .map-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex;
+    flex-direction: column;
+  }
+  .map-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+  .map-thumb {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover;
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .map-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .map-thumb-placeholder {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--text3); font-size: 13px; gap: 8px;
+  }
+  .map-thumb-placeholder svg { width: 32px; height: 32px; opacity: 0.4; }
+  .thumb-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    border-radius: 6px; padding: 3px 8px; font-size: 11px;
+    color: var(--text2); display: flex; align-items: center; gap: 4px;
+  }
+  .thumb-badge.has-video { color: var(--danger); }
+  .map-info { padding: 12px 14px 14px; }
+  .map-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+  .map-desc { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .map-meta { display: flex; align-items: center; justify-content: space-between; }
+  .map-meta-left { display: flex; align-items: center; gap: 10px; }
+  .map-author { font-size: 11px; color: var(--accent2); font-weight: 600; }
+  .map-date { font-size: 11px; color: var(--text3); }
+  .map-actions { display: flex; gap: 6px; }
+
+  /* MAP DETAIL */
+  .detail-back {
+    padding: 14px 20px 0;
+  }
+  .detail-back-btn {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    font-size: 13px; display: flex; align-items: center; gap: 6px;
+    padding: 0; font-family: var(--font);
+  }
+  .detail-back-btn:hover { color: var(--text); }
+  .detail-main-thumb {
+    width: 100%; aspect-ratio: 16/9;
+    background: var(--bg3); position: relative; overflow: hidden;
+  }
+  .detail-main-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .detail-thumb-empty {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); flex-direction: column; gap: 8px;
+  }
+  .gallery-strip { display: flex; gap: 8px; padding: 10px 20px; overflow-x: auto; }
+  .gallery-strip::-webkit-scrollbar { height: 3px; }
+  .gallery-strip::-webkit-scrollbar-track { background: transparent; }
+  .gallery-strip::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+  .gallery-thumb {
+    flex: 0 0 80px; height: 54px; border-radius: 6px;
+    overflow: hidden; border: 2px solid transparent; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .gallery-thumb.active { border-color: var(--accent); }
+  .gallery-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .detail-body { padding: 16px 20px; }
+  .detail-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.3px; }
+  .detail-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .detail-author { font-size: 12px; color: var(--accent2); font-weight: 600; }
+  .detail-date { font-size: 12px; color: var(--text3); }
+  .detail-desc { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 18px; }
+  .detail-video-section { margin-bottom: 20px; }
+  .detail-video-label { font-size: 12px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .video-embed { width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; border: 1px solid var(--border); }
+  .video-embed iframe { width: 100%; height: 100%; border: none; display: block; }
+  .video-link-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(232,85,85,0.1); border: 1px solid rgba(232,85,85,0.3);
+    border-radius: 10px; padding: 12px 16px; cursor: pointer;
+    color: #f06565; font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: all .15s;
+  }
+  .video-link-btn:hover { background: rgba(232,85,85,0.18); }
+  .video-link-btn svg { width: 22px; height: 22px; flex-shrink: 0; }
+  .detail-download-btn {
+    width: 100%; padding: 14px;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 10px; font-size: 15px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 8px; font-family: var(--font); transition: all .15s;
+  }
+  .detail-download-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  /* MODAL / DEV PANEL */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 200; align-items: flex-end; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 480px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 0 0 40px;
+  }
+  .sheet-handle { width: 36px; height: 4px; background: var(--bg3); border-radius: 2px; margin: 12px auto 0; }
+  .sheet-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sheet-title { font-size: 16px; font-weight: 700; }
+  .sheet-close { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
+  .sheet-close:hover { color: var(--text); }
+  .sheet-body { padding: 20px; }
+
+  /* FORM */
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: block; letter-spacing: 0.3px; }
+  .form-input, .form-textarea {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px; font-family: var(--font);
+    transition: border-color .15s;
+  }
+  .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--accent); }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text3); }
+  .form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s;
+    position: relative;
+  }
+  .img-upload-area:hover, .img-upload-area.drag { border-color: var(--accent); background: var(--accent-glow); }
+  .img-upload-area input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-text { font-size: 13px; color: var(--text2); }
+  .upload-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  .img-preview-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+  }
+  .img-preview-item {
+    position: relative; aspect-ratio: 16/9; border-radius: 8px; overflow: hidden;
+    background: var(--bg3);
+  }
+  .img-preview-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .img-preview-item.main-thumb { grid-column: 1 / -1; aspect-ratio: 16/9; }
+  .img-remove {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(0,0,0,0.7); border: none; border-radius: 50%;
+    width: 22px; height: 22px; color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    line-height: 1;
+  }
+  .main-badge {
+    position: absolute; bottom: 6px; left: 6px;
+    background: var(--accent); color: #fff;
+    border-radius: 4px; padding: 2px 7px; font-size: 10px; font-weight: 700;
+  }
+
+  /* LOGIN */
+  .login-page {
+    min-height: calc(100vh - 56px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 340px;
+  }
+  .login-logo { text-align: center; margin-bottom: 24px; }
+  .login-logo-icon {
+    width: 52px; height: 52px; background: var(--accent); border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 900; color: #fff; margin: 0 auto 10px;
+  }
+  .login-logo-text { font-size: 18px; font-weight: 800; }
+  .login-logo-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .login-error { background: rgba(232,85,85,0.1); border: 1px solid rgba(232,85,85,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--danger); margin-bottom: 16px; display: none; }
+
+  /* DEV PANEL */
+  .dev-panel { padding: 20px; }
+  .dev-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .dev-avatar {
+    width: 44px; height: 44px; background: var(--accent); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: #fff;
+  }
+  .dev-name { font-size: 15px; font-weight: 700; }
+  .dev-role { font-size: 11px; color: var(--accent2); font-weight: 600; margin-top: 2px; }
+  .dev-maps { margin-bottom: 20px; }
+  .dev-maps-title { font-size: 13px; font-weight: 700; margin-bottom: 12px; color: var(--text2); }
+  .dev-map-item {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; display: flex; gap: 10px;
+    align-items: center; margin-bottom: 8px;
+  }
+  .dev-map-thumb { width: 56px; height: 38px; border-radius: 6px; overflow: hidden; background: var(--bg3); flex-shrink: 0; }
+  .dev-map-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .dev-map-info { flex: 1; min-width: 0; }
+  .dev-map-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dev-map-date { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .dev-map-btns { display: flex; gap: 6px; }
+
+  /* EMPTY */
+  .empty-state { text-align: center; padding: 48px 20px; }
+  .empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.4; }
+  .empty-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text3); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--card2); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+    z-index: 999; transition: transform .3s ease; white-space: nowrap;
+    color: var(--text); display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: rgba(61,202,126,0.4); color: var(--success); }
+  .toast.error { border-color: rgba(232,85,85,0.4); color: var(--danger); }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .tag { display: inline-flex; align-items: center; background: var(--accent-glow); color: var(--accent2); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo" onclick="goHome()" style="cursor:pointer">
+    <div class="nav-logo-icon">LC</div>
+    <div class="nav-logo-text">LAC <span>Maps</span></div>
+  </div>
+  <div class="nav-actions" id="navActions">
+    <button class="btn btn-ghost btn-sm" onclick="showLogin()">Entrar</button>
+    <button class="btn btn-primary btn-sm" onclick="showLogin()">+ Publicar</button>
+  </div>
+</nav>
+
+<!-- ===== VIEW: HOME ===== -->
+<div class="view active" id="viewHome">
+  <div class="home-hero">
+    <div class="hero-badge">Mapas para Los Angeles Crimes</div>
+    <h1 class="hero-title">Explore e baixe <span>mapas incríveis</span> para o LAC</h1>
+    <p class="hero-sub">Mapas criados pela comunidade. Baixe, instale e jogue agora mesmo.</p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num" id="statMaps">0</div>
+        <div class="stat-label">Mapas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statDevs">0</div>
+        <div class="stat-label">Criadores</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="statDownloads">0</div>
+        <div class="stat-label">Downloads</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <div class="section-title">Mapas disponíveis</div>
+    <div class="section-count" id="mapCount">0 mapas</div>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" placeholder="Buscar mapa..." oninput="filterMaps(this.value)" id="searchInput">
+    </div>
+  </div>
+
+  <div class="maps-grid" id="mapsGrid">
+    <!-- maps rendered here -->
+  </div>
+
+  <div class="empty-state" id="emptyHome" style="display:none">
+    <div class="empty-icon">🗺️</div>
+    <div class="empty-title">Nenhum mapa publicado ainda</div>
+    <div class="empty-sub">Seja o primeiro a publicar um mapa para a comunidade!</div>
+  </div>
+</div>
+
+<!-- ===== VIEW: MAP DETAIL ===== -->
+<div class="view" id="viewDetail">
+  <div class="detail-back">
+    <button class="detail-back-btn" onclick="goHome()">
+      ← Voltar
+    </button>
+  </div>
+  <div class="detail-main-thumb">
+    <img src="" id="detailMainImg" alt="" style="display:none">
+    <div class="detail-thumb-empty" id="detailThumbEmpty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;opacity:0.3"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span style="font-size:12px;color:var(--text3)">Sem imagem</span>
+    </div>
+  </div>
+  <div class="gallery-strip" id="detailGallery"></div>
+  <div class="detail-body">
+    <h1 class="detail-title" id="detailTitle"></h1>
+    <div class="detail-meta">
+      <span class="detail-author" id="detailAuthor"></span>
+      <span class="detail-date" id="detailDate"></span>
+      <span class="tag" id="detailTag"></span>
+    </div>
+    <p class="detail-desc" id="detailDesc"></p>
+
+    <div class="detail-video-section" id="detailVideoSection" style="display:none">
+      <div class="detail-video-label">Prévia em vídeo</div>
+      <div id="detailVideoEmbed"></div>
+    </div>
+
+    <a class="detail-download-btn" id="detailDownloadBtn" href="#" target="_blank" style="text-decoration:none;justify-content:center;">
+      ⬇ Baixar mapa
+    </a>
+    <div id="detailNoDownload" style="display:none;text-align:center;font-size:12px;color:var(--text3);margin-top:8px;">Link de download não disponível ainda</div>
+  </div>
+</div>
+
+<!-- ===== VIEW: LOGIN ===== -->
+<div class="view" id="viewLogin">
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">LC</div>
+        <div class="login-logo-text">Painel do Desenvolvedor</div>
+        <div class="login-logo-sub">LAC Maps — Acesso restrito</div>
+      </div>
+      <div class="login-error" id="loginError">Senha incorreta.</div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input class="form-input" id="loginPass" placeholder="Digite a senha" type="password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:16px;">
+        <button class="btn btn-ghost btn-sm" onclick="goHome()">← Voltar para os mapas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIEW: DEV PANEL ===== -->
+<div class="view" id="viewDev">
+  <div class="dev-panel">
+    <div class="dev-header">
+      <div class="dev-avatar" id="devAvatar">D</div>
+      <div>
+        <div class="dev-name" id="devName">Desenvolvedor</div>
+        <div class="dev-role">✦ Criador de Mapas</div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" style="width:100%;padding:12px;margin-bottom:20px;font-size:14px;" onclick="openPublishModal()">
+      + Publicar novo mapa
+    </button>
+
+    <div class="dev-maps">
+      <div class="dev-maps-title">Meus mapas publicados</div>
+      <div id="devMapsList"></div>
+    </div>
+
+    <div class="divider"></div>
+    <button class="btn btn-danger" style="width:100%;" onclick="doLogout()">Sair da conta</button>
+  </div>
+</div>
+
+<!-- ===== OVERLAY: PUBLISH MODAL ===== -->
+<div class="overlay" id="overlayPublish">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="modalTitle">Publicar mapa</div>
+      <button class="sheet-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-group">
+        <label class="form-label">Nome do mapa *</label>
+        <input class="form-input" id="formTitle" placeholder="Ex: Centro de Los Angeles">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descrição *</label>
+        <textarea class="form-textarea" id="formDesc" placeholder="Descreva o mapa: tamanho, estilo, detalhes..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Imagem de capa principal (thumbnail) *</label>
+        <div class="img-upload-area" id="thumbUploadArea">
+          <input type="file" accept="image/*" onchange="handleThumb(event)">
+          <div class="upload-icon">🖼️</div>
+          <div class="upload-text">Toque para escolher da galeria</div>
+          <div class="upload-sub">Capa principal do mapa</div>
+        </div>
+        <div id="thumbPreview" style="display:none;margin-top:10px;position:relative;border-radius:10px;overflow:hidden;">
+          <img id="thumbPreviewImg" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;" alt="">
+          <span class="main-badge">Capa principal</span>
+          <button class="img-remove" onclick="removeThumb()">✕</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Fotos secundárias do mapa (opcional)</label>
+        <div class="img-upload-area" id="secUploadArea">
+          <input type="file" accept="image/*" multiple onchange="handleSecondary(event)">
+          <div class="upload-icon">📷</div>
+          <div class="upload-text">Adicionar fotos extras</div>
+          <div class="upload-sub">Selecione várias da galeria</div>
+        </div>
+        <div class="img-preview-grid" id="secPreviewGrid"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Link de download (Mediafire, Google Drive...) *</label>
+        <input class="form-input" id="formDownload" placeholder="https://www.mediafire.com/file/...">
+        <div style="font-size:11px;color:var(--text3);margin-top:5px;">Link onde as pessoas vão baixar o mapa</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Link de vídeo do YouTube (opcional)</label>
+        <input class="form-input" id="formVideo" placeholder="https://youtube.com/watch?v=...">
+        <div style="font-size:11px;color:var(--text3);margin-top:5px;">Cole o link do vídeo de prévia do mapa</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-input" id="formCategory" style="appearance:auto;cursor:pointer;">
+          <option value="Cidade">Cidade</option>
+          <option value="Favela">Favela</option>
+          <option value="Rural">Rural</option>
+          <option value="Interior">Interior</option>
+          <option value="Aeroporto">Aeroporto</option>
+          <option value="Porto">Porto</option>
+          <option value="Outro">Outro</option>
+        </select>
+      </div>
+
+      <button class="btn btn-success" style="width:100%;padding:13px;font-size:15px;" onclick="publishMap()" id="publishBtn">
+        ✓ Publicar mapa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+const CRED = { user: 'Desenvolvedor', pass: 'Free Fire 123456' };
+let currentUser = null;
+let maps = JSON.parse(localStorage.getItem('lacMaps') || '[]');
+let editingId = null;
+let thumbData = null;
+let secondaryData = [];
+let currentMapId = null;
+let currentGalleryIdx = 0;
+
+// ─── INIT ────────────────────────────────────────────────────
+function init() {
+  renderHomeStats();
+  renderMapGrid(maps);
+}
+init();
+
+function saveToStorage() {
+  // Note: storing image data in localStorage has size limits.
+  // For real use, images would go to a server. Here we store small previews.
+  try {
+    localStorage.setItem('lacMaps', JSON.stringify(maps));
+  } catch(e) {
+    // localStorage full (too many large images) — just keep in memory
+  }
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  showView('viewHome');
+  renderMapGrid(maps);
+  renderHomeStats();
+}
+function showLogin() {
+  showView('viewLogin');
+  document.getElementById('loginError').style.display = 'none';
+}
+
+// ─── AUTH ────────────────────────────────────────────────────
+function doLogin() {
+  const p = document.getElementById('loginPass').value;
+  if (p === CRED.pass) {
+    currentUser = CRED.user;
+    showView('viewDev');
+    updateNav();
+    renderDevPanel();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+function doLogout() {
+  currentUser = null;
+  updateNav();
+  goHome();
+  showToast('Você saiu da conta', 'success');
+}
+function updateNav() {
+  const el = document.getElementById('navActions');
+  if (currentUser) {
+    el.innerHTML = `<button class="btn btn-primary btn-sm" onclick="showPublishFromNav()">+ Publicar</button>
+      <button class="btn btn-ghost btn-sm" onclick="showView('viewDev')">Minha conta</button>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="showLogin()">Entrar</button>
+      <button class="btn btn-primary btn-sm" onclick="showLogin()">+ Publicar</button>`;
+  }
+}
+function showPublishFromNav() {
+  if (!currentUser) { showLogin(); return; }
+  showView('viewDev');
+  openPublishModal();
+}
+
+// ─── HOME STATS ──────────────────────────────────────────────
+function renderHomeStats() {
+  document.getElementById('statMaps').textContent = maps.length;
+  const devs = new Set(maps.map(m => m.author)).size;
+  document.getElementById('statDevs').textContent = devs;
+  const dl = maps.reduce((s, m) => s + (m.downloads || 0), 0);
+  document.getElementById('statDownloads').textContent = dl;
+  document.getElementById('mapCount').textContent = maps.length + (maps.length === 1 ? ' mapa' : ' mapas');
+}
+
+// ─── MAP GRID ────────────────────────────────────────────────
+function renderMapGrid(list) {
+  const grid = document.getElementById('mapsGrid');
+  const empty = document.getElementById('emptyHome');
+  if (!list || list.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = list.map(m => buildMapCard(m)).join('');
+}
+
+function buildMapCard(m) {
+  const hasVideo = !!m.videoUrl;
+  const thumbHtml = m.thumb
+    ? `<img src="${m.thumb}" alt="${m.title}" loading="lazy">`
+    : `<div class="map-thumb-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Sem imagem</span>
+       </div>`;
+  return `
+  <div class="map-card" onclick="openMap('${m.id}')">
+    <div class="map-thumb">
+      ${thumbHtml}
+      ${hasVideo ? `<div class="thumb-badge has-video">▶ Vídeo</div>` : ''}
+    </div>
+    <div class="map-info">
+      <div class="map-title">${m.title}</div>
+      <div class="map-desc">${m.description}</div>
+      <div class="map-meta">
+        <div class="map-meta-left">
+          <span class="map-author">@${m.author}</span>
+          <span class="map-date">${formatDate(m.date)}</span>
+        </div>
+        <span class="tag">${m.category || 'Mapa'}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function filterMaps(q) {
+  const f = q.toLowerCase().trim();
+  const filtered = f ? maps.filter(m =>
+    m.title.toLowerCase().includes(f) ||
+    m.description.toLowerCase().includes(f) ||
+    m.category?.toLowerCase().includes(f)
+  ) : maps;
+  document.getElementById('mapCount').textContent = filtered.length + (filtered.length === 1 ? ' mapa' : ' mapas');
+  renderMapGrid(filtered);
+}
+
+// ─── MAP DETAIL ──────────────────────────────────────────────
+function openMap(id) {
+  const m = maps.find(x => x.id === id);
+  if (!m) return;
+  currentMapId = id;
+  m.downloads = (m.downloads || 0) + 1;
+  saveToStorage();
+
+  showView('viewDetail');
+
+  // main image
+  const mainImg = document.getElementById('detailMainImg');
+  const thumbEmpty = document.getElementById('detailThumbEmpty');
+  const allImgs = [m.thumb, ...(m.secondary || [])].filter(Boolean);
+  currentGalleryIdx = 0;
+
+  if (allImgs.length > 0) {
+    mainImg.src = allImgs[0];
+    mainImg.style.display = 'block';
+    thumbEmpty.style.display = 'none';
+  } else {
+    mainImg.style.display = 'none';
+    thumbEmpty.style.display = 'flex';
+  }
+
+  // gallery strip
+  const gallery = document.getElementById('detailGallery');
+  if (allImgs.length > 1) {
+    gallery.innerHTML = allImgs.map((src, i) =>
+      `<div class="gallery-thumb ${i===0?'active':''}" onclick="setGalleryImg(${i})" id="gthumb${i}">
+        <img src="${src}" alt="">
+      </div>`
+    ).join('');
+    gallery.style.display = 'flex';
+  } else {
+    gallery.innerHTML = '';
+    gallery.style.display = 'none';
+  }
+
+  document.getElementById('detailTitle').textContent = m.title;
+  document.getElementById('detailAuthor').textContent = '@' + m.author;
+  document.getElementById('detailDate').textContent = formatDate(m.date);
+  document.getElementById('detailTag').textContent = m.category || 'Mapa';
+  document.getElementById('detailDesc').textContent = m.description;
+
+  // video
+  const videoSection = document.getElementById('detailVideoSection');
+  const videoEmbed = document.getElementById('detailVideoEmbed');
+  if (m.videoUrl) {
+    videoSection.style.display = 'block';
+    const ytId = extractYtId(m.videoUrl);
+    if (ytId) {
+      videoEmbed.innerHTML = `
+        <div style="margin-bottom:8px">
+          <div class="video-embed">
+            <iframe src="https://www.youtube.com/embed/${ytId}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+        </div>
+        <a href="${m.videoUrl}" target="_blank" class="video-link-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.19a3.02 3.02 0 00-2.12-2.14C19.56 3.5 12 3.5 12 3.5s-7.56 0-9.38.55A3.02 3.02 0 00.5 6.19C0 8.02 0 12 0 12s0 3.98.5 5.81a3.02 3.02 0 002.12 2.14C4.44 20.5 12 20.5 12 20.5s7.56 0 9.38-.55a3.02 3.02 0 002.12-2.14C24 15.98 24 12 24 12s0-3.98-.5-5.81zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>
+          Ver no YouTube
+        </a>`;
+    } else {
+      videoEmbed.innerHTML = `<a href="${m.videoUrl}" target="_blank" class="video-link-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:22px;height:22px"><path d="M23.5 6.19a3.02 3.02 0 00-2.12-2.14C19.56 3.5 12 3.5 12 3.5s-7.56 0-9.38.55A3.02 3.02 0 00.5 6.19C0 8.02 0 12 0 12s0 3.98.5 5.81a3.02 3.02 0 002.12 2.14C4.44 20.5 12 20.5 12 20.5s7.56 0 9.38-.55a3.02 3.02 0 002.12-2.14C24 15.98 24 12 24 12s0-3.98-.5-5.81zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>
+        Ver prévia no YouTube
+      </a>`;
+    }
+  } else {
+    videoSection.style.display = 'none';
+  }
+
+  const dlBtn = document.getElementById('detailDownloadBtn');
+  const noDl = document.getElementById('detailNoDownload');
+  if (m.downloadUrl) {
+    dlBtn.href = m.downloadUrl;
+    dlBtn.style.display = 'flex';
+    noDl.style.display = 'none';
+  } else {
+    dlBtn.style.display = 'none';
+    noDl.style.display = 'block';
+  }
+}
+
+function setGalleryImg(idx) {
+  const m = maps.find(x => x.id === currentMapId);
+  if (!m) return;
+  const allImgs = [m.thumb, ...(m.secondary || [])].filter(Boolean);
+  currentGalleryIdx = idx;
+  const mainImg = document.getElementById('detailMainImg');
+  mainImg.src = allImgs[idx];
+  mainImg.style.display = 'block';
+  document.getElementById('detailThumbEmpty').style.display = 'none';
+  document.querySelectorAll('.gallery-thumb').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+  });
+}
+
+// ─── PUBLISH MODAL ───────────────────────────────────────────
+function openPublishModal(mapId) {
+  editingId = mapId || null;
+  thumbData = null;
+  secondaryData = [];
+  resetForm();
+
+  if (mapId) {
+    const m = maps.find(x => x.id === mapId);
+    if (m) {
+      document.getElementById('modalTitle').textContent = 'Editar mapa';
+      document.getElementById('formTitle').value = m.title;
+      document.getElementById('formDesc').value = m.description;
+      document.getElementById('formVideo').value = m.videoUrl || '';
+      document.getElementById('formDownload').value = m.downloadUrl || '';
+      document.getElementById('formCategory').value = m.category || 'Cidade';
+      if (m.thumb) {
+        thumbData = m.thumb;
+        document.getElementById('thumbPreview').style.display = 'block';
+        document.getElementById('thumbPreviewImg').src = m.thumb;
+        document.getElementById('thumbUploadArea').style.display = 'none';
+      }
+      if (m.secondary && m.secondary.length) {
+        secondaryData = [...m.secondary];
+        renderSecPreviews();
+      }
+    }
+  } else {
+    document.getElementById('modalTitle').textContent = 'Publicar mapa';
+  }
+  document.getElementById('overlayPublish').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('overlayPublish').classList.remove('open');
+  resetForm();
+}
+function resetForm() {
+  ['formTitle','formDesc','formVideo','formDownload'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('formCategory').value = 'Cidade';
+  thumbData = null; secondaryData = [];
+  document.getElementById('thumbPreview').style.display = 'none';
+  document.getElementById('thumbUploadArea').style.display = 'block';
+  document.getElementById('secPreviewGrid').innerHTML = '';
+}
+
+// ─── IMAGE HANDLING ──────────────────────────────────────────
+function handleThumb(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  compressImage(file, 800, (data) => {
+    thumbData = data;
+    document.getElementById('thumbPreviewImg').src = data;
+    document.getElementById('thumbPreview').style.display = 'block';
+    document.getElementById('thumbUploadArea').style.display = 'none';
+  });
+}
+function removeThumb() {
+  thumbData = null;
+  document.getElementById('thumbPreview').style.display = 'none';
+  document.getElementById('thumbUploadArea').style.display = 'block';
+}
+function handleSecondary(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    compressImage(file, 640, (data) => {
+      secondaryData.push(data);
+      renderSecPreviews();
+    });
+  });
+}
+function removeSecondary(idx) {
+  secondaryData.splice(idx, 1);
+  renderSecPreviews();
+}
+function renderSecPreviews() {
+  const grid = document.getElementById('secPreviewGrid');
+  grid.innerHTML = secondaryData.map((src, i) =>
+    `<div class="img-preview-item">
+      <img src="${src}" alt="">
+      <button class="img-remove" onclick="removeSecondary(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+function compressImage(file, maxW, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── PUBLISH ─────────────────────────────────────────────────
+function publishMap() {
+  const title = document.getElementById('formTitle').value.trim();
+  const desc = document.getElementById('formDesc').value.trim();
+  const video = document.getElementById('formVideo').value.trim();
+  const download = document.getElementById('formDownload').value.trim();
+  const cat = document.getElementById('formCategory').value;
+
+  if (!title) { showToast('Coloque o nome do mapa!', 'error'); return; }
+  if (!desc) { showToast('Adicione uma descrição!', 'error'); return; }
+  if (!download) { showToast('Coloque o link de download!', 'error'); return; }
+
+  if (editingId) {
+    const idx = maps.findIndex(m => m.id === editingId);
+    if (idx >= 0) {
+      maps[idx] = { ...maps[idx], title, description: desc, videoUrl: video || '',
+        downloadUrl: download, category: cat,
+        thumb: thumbData || maps[idx].thumb, secondary: secondaryData };
+    }
+    showToast('Mapa atualizado!', 'success');
+  } else {
+    const m = {
+      id: 'map_' + Date.now(),
+      title, description: desc, videoUrl: video || '',
+      downloadUrl: download,
+      category: cat, author: currentUser,
+      date: new Date().toISOString(), downloads: 0,
+      thumb: thumbData || null, secondary: secondaryData
+    };
+    maps.unshift(m);
+    showToast('Mapa publicado!', 'success');
+  }
+  saveToStorage();
+  closeModal();
+  renderDevPanel();
+  renderHomeStats();
+}
+
+// ─── DEV PANEL ───────────────────────────────────────────────
+function renderDevPanel() {
+  const myMaps = maps.filter(m => m.author === currentUser);
+  const initials = currentUser.charAt(0).toUpperCase();
+  document.getElementById('devAvatar').textContent = initials;
+  document.getElementById('devName').textContent = currentUser;
+
+  const list = document.getElementById('devMapsList');
+  if (!myMaps.length) {
+    list.innerHTML = `<div class="empty-state" style="padding:24px 0">
+      <div class="empty-icon">🗺️</div>
+      <div class="empty-title" style="font-size:13px">Nenhum mapa publicado</div>
+      <div class="empty-sub">Publique seu primeiro mapa acima!</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = myMaps.map(m => `
+    <div class="dev-map-item">
+      <div class="dev-map-thumb">
+        ${m.thumb ? `<img src="${m.thumb}" alt="">` : ''}
+      </div>
+      <div class="dev-map-info">
+        <div class="dev-map-name">${m.title}</div>
+        <div class="dev-map-date">${formatDate(m.date)} · ${m.downloads || 0} downloads</div>
+      </div>
+      <div class="dev-map-btns">
+        <button class="btn btn-ghost btn-sm" onclick="openPublishModal('${m.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMap('${m.id}')">Excluir</button>
+      </div>
+    </div>`).join('');
+}
+function deleteMap(id) {
+  if (!confirm('Excluir este mapa?')) return;
+  maps = maps.filter(m => m.id !== id);
+  saveToStorage();
+  renderDevPanel();
+  renderHomeStats();
+  showToast('Mapa excluído', 'success');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────
+function extractYtId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = (type === 'success' ? '✓ ' : '⚠ ') + msg;
+  t.className = 'toast show ' + (type || '');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// close overlay on bg click
+document.getElementById('overlayPublish').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
